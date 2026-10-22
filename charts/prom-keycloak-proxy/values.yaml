@@ -1,0 +1,21 @@
+namespace: open-cluster-management-observability
+name: prom-keycloak-proxy
+route:
+  host: ''
+prometheus:
+  url: ''
+auth:
+  url: ''
+  realm: ''
+  client: ''
+acm:
+  hub: ''
+tls:
+  verify: true
+resources:
+  requests:
+    memory: 100Mi
+    cpu: 100m
+  limits:
+    memory: 200Mi
+    cpu: 200m

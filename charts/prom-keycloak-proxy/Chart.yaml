@@ -1,0 +1,5 @@
+apiVersion: v2
+name: prom-keycloak-proxy
+description: Fine-grained access control to ACM Observability metrics
+version: 0.1.0
+type: application

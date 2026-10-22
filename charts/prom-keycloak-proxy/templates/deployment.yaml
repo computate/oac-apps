@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: prom-keycloak-proxy
+    deployment: {{ .Values.name }}
+spec:
+  selector:
+    matchLabels:
+      app: prom-keycloak-proxy
+      deployment: {{ .Values.name }}
+  replicas: 1
+  revisionHistoryLimit: 0
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      name: {{ .Values.name }}
+      labels:
+        app: prom-keycloak-proxy
+        deployment: {{ .Values.name }}
+    spec:
+      containers:
+        - name: {{ .Values.name }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.name }}-secrets
+          env:
+            - name: PROXY_ACM_HUB
+              value: {{ .Values.acm.hub }}
+            - name: PROXY_PROMETHEUS_CA_CERT
+              value: /opt/{{ .Values.name }}-ca-certs/ca.crt
+            - name: PROXY_PROMETHEUS_TLS_CERT
+              value: /opt/{{ .Values.name }}-certs/tls.crt
+            - name: PROXY_PROMETHEUS_TLS_KEY
+              value: /opt/{{ .Values.name }}-certs/tls.key
+            - name: PROXY_AUTH_REALM
+              value: {{ .Values.auth.realm }}
+            - name: PROXY_AUTH_CLIENT
+              value: {{ .Values.auth.client }}
+            - name: PROXY_AUTH_BASE_URL
+              value: {{ .Values.auth.url }}
+            - name: PROXY_AUTH_TLS_VERIFY
+              value: '{{ .Values.tls.verify }}'
+            - name: PROXY_PROMETHEUS_BASE_URL
+              value: '{{ .Values.prometheus.url }}'
+            - name: PROXY_HUB_KEY
+              value: HUB
+            - name: PROXY_CLUSTER_KEY
+              value: CLUSTER
+            - name: PROXY_PROJECT_KEY
+              value: PROJECT
+          image: quay.io/nerc-images/prom-keycloak-proxy:2.4.0
+          imagePullPolicy: Always
+          livenessProbe:
+            exec:
+              command:
+                - /usr/bin/curl
+                - http://localhost:8080
+            failureThreshold: 6
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - /usr/bin/curl
+                - http://localhost:8080
+            failureThreshold: 6
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            requests:
+              memory: '{{ .Values.resources.requests.memory }}'
+              cpu: '{{ .Values.resources.requests.cpu }}'
+            limits:
+              memory: '{{ .Values.resources.limits.memory }}'
+              cpu: '{{ .Values.resources.limits.cpu }}'
+          volumeMounts:
+            - mountPath: /opt/{{ .Values.name }}-certs
+              name: {{ .Values.name }}-certs
+              readOnly: true
+            - mountPath: /opt/{{ .Values.name }}-ca-certs
+              name: {{ .Values.name }}-ca-certs
+              readOnly: true
+      volumes:
+        - name: {{ .Values.name }}-certs
+          secret:
+            secretName: {{ .Values.name }}-certs
+        - name: {{ .Values.name }}-ca-certs
+          secret:
+            secretName: {{ .Values.name }}-ca-certs
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
